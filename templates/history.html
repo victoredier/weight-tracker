@@ -1,0 +1,131 @@
+{% extends 'base.html' %}
+
+{% block title %}Historial de Peso - FamiliaPeso{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
+    <div>
+        <h1 class="title-main">Historial de Registros</h1>
+        <p class="subtitle-main" style="margin-bottom: 0;">Administra y corrige tus tomas de peso pasadas.</p>
+    </div>
+    
+    {% if logs %}
+        <a href="{{ url_for('export_csv') }}" class="btn btn-secondary btn-sm" style="display: inline-flex; align-items: center; gap: 0.5rem; width: auto;" id="export-csv-btn">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Exportar CSV
+        </a>
+    {% endif %}
+</div>
+
+<!-- Edit Log Block (Shows when edit parameter is present) -->
+{% if edit_log %}
+    <div class="card" style="margin-bottom: 2rem; border-color: var(--color-warning);">
+        <h2 style="font-size: 1.2rem; font-weight: 700; margin-bottom: 1.25rem; display: flex; align-items: center; gap: 0.5rem;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-warning)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            Modificar Registro de Peso
+        </h2>
+        
+        <form action="{{ url_for('edit_weight', log_id=edit_log.id) }}" method="POST">
+            <div style="display: grid; grid-template-columns: 1fr; gap: 1.25rem;">
+                <!-- Weight input -->
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label for="weight" class="form-label">Peso nuevo</label>
+                    <div class="weight-input-container">
+                        <!-- We multiply by 10 to feed into parser or standard float. If we show e.g. 82.5, they can just edit -->
+                        <input type="text" 
+                               name="weight" 
+                               id="weight" 
+                               class="form-input" 
+                               value="{{ edit_log.weight }}" 
+                               required 
+                               autocomplete="off"
+                               style="font-size: 1.25rem; font-weight: 700; padding-right: 3.5rem;">
+                        <span class="weight-unit">kg</span>
+                    </div>
+                    <div id="weight-preview-tip" class="weight-preview-tip"></div>
+                </div>
+
+                <!-- Date & Time inputs -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label for="custom_date" class="form-label" style="font-size: 0.8rem;">Fecha</label>
+                        <input type="date" name="custom_date" id="custom_date" class="form-input" value="{{ edit_log.date.strftime('%Y-%m-%d') }}" required>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label for="custom_time" class="form-label" style="font-size: 0.8rem;">Hora</label>
+                        <input type="time" name="custom_time" id="custom_time" class="form-input" value="{{ edit_log.date.strftime('%H:%M') }}" required>
+                    </div>
+                </div>
+
+                <!-- Notes -->
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label for="notes" class="form-label">Notas</label>
+                    <textarea name="notes" id="notes" class="form-input" rows="2" placeholder="Notas..." style="resize: none;">{{ edit_log.notes or '' }}</textarea>
+                </div>
+            </div>
+
+            <div style="margin-top: 1.5rem; display: flex; gap: 1rem; justify-content: flex-end;">
+                <a href="{{ url_for('history') }}" class="btn btn-secondary btn-sm" style="width: auto;" id="cancel-edit-btn">Descartar</a>
+                <button type="submit" class="btn btn-sm" style="width: auto; background: var(--color-warning); box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2);" id="save-edit-btn">Actualizar Registro</button>
+            </div>
+        </form>
+    </div>
+{% endif %}
+
+<!-- History Table Card -->
+<div class="card">
+    {% if logs %}
+        <div class="history-table-container">
+            <table class="history-table" id="history-data-table">
+                <thead>
+                    <tr>
+                        <th>Fecha y Hora</th>
+                        <th>Peso (kg)</th>
+                        <th>Notas</th>
+                        <th style="text-align: right;">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in logs %}
+                        <tr>
+                            <td style="white-space: nowrap;">
+                                {{ log.date.strftime('%d/%m/%Y %H:%M') }}
+                            </td>
+                            <td style="font-weight: 700; font-size: 1.05rem;">
+                                {{ "%.1f"|format(log.weight) }} kg
+                            </td>
+                            <td style="color: var(--text-secondary); max-width: 300px; overflow: hidden; text-overflow: ellipsis;">
+                                {{ log.notes or '-' }}
+                            </td>
+                            <td style="text-align: right;">
+                                <div class="actions-cell" style="justify-content: flex-end;">
+                                    <!-- Edit Link -->
+                                    <a href="{{ url_for('history', edit=log.id) }}" class="btn-action" title="Editar" id="edit-log-{{ log.id }}">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                                    </a>
+                                    <!-- Delete Form -->
+                                    <form action="{{ url_for('delete_weight', log_id=log.id) }}" method="POST" onsubmit="return confirm('¿Estás seguro de que deseas eliminar este registro de peso?');" style="display: inline;">
+                                        <button type="submit" class="btn-action btn-delete" title="Eliminar" id="delete-log-{{ log.id }}">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="empty-state">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="12"></line>
+                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+            <p>Aún no has registrado ningún peso.</p>
+            <span style="font-size: 0.85rem; color: var(--text-muted);">Ve al panel de control para añadir tu primera toma.</span>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

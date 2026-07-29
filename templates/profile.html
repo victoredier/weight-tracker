@@ -1,0 +1,122 @@
+{% extends 'base.html' %}
+
+{% block title %}Mi Perfil - FamiliaPeso{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 2rem;">
+    <h1 class="title-main">Mi Perfil</h1>
+    <p class="subtitle-main">Gestiona tus datos corporales para calcular métricas como tu Índice de Masa Corporal (IMC).</p>
+</div>
+
+<div class="dashboard-grid" style="grid-template-columns: 1fr; max-width: 800px; margin: 0 auto;">
+    
+    <div style="display: grid; grid-template-columns: 1fr; gap: 1.5rem;">
+        {% if current_user.height and current_user.latest_weight %}
+            <!-- BMI / IMC Gauge Card -->
+            <div class="card">
+                <h2 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                    Tu Índice de Masa Corporal (IMC)
+                </h2>
+                
+                <div class="bmi-gauge-card">
+                    <div class="bmi-value-display" style="border-left: 5px solid {{ current_user.bmi_category.color if current_user.bmi_category else 'var(--text-muted)' }}">
+                        <div class="bmi-number" style="color: {{ current_user.bmi_category.color if current_user.bmi_category else 'var(--text-primary)' }}">
+                            {{ "%.1f"|format(current_user.bmi) }}
+                        </div>
+                        <div class="bmi-category-label" style="color: {{ current_user.bmi_category.color if current_user.bmi_category else 'var(--text-secondary)' }}">
+                            {{ current_user.bmi_category.name if current_user.bmi_category else 'Desconocido' }}
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <!-- Calculate percent for the pin: scale from BMI 15 to 35 -->
+                        {% set bmi_val = current_user.bmi %}
+                        {% set min_bmi = 15.0 %}
+                        {% set max_bmi = 35.0 %}
+                        {% set range_bmi = max_bmi - min_bmi %}
+                        {% set pct = 0 %}
+                        {% if bmi_val %}
+                            {% set pct = (((bmi_val - min_bmi) / range_bmi) * 100) %}
+                            {% if pct < 0 %}{% set pct = 0 %}{% endif %}
+                            {% if pct > 100 %}{% set pct = 100 %}{% endif %}
+                        {% endif %}
+                        
+                        <div class="bmi-slider-track">
+                            <div class="bmi-slider-pin" style="left: {{ pct }}%; border-color: {{ current_user.bmi_category.color if current_user.bmi_category else 'var(--color-primary)' }}"></div>
+                        </div>
+                        <div class="bmi-scale-labels">
+                            <span>Bajo (<18.5)</span>
+                            <span>Normal (18.5-24.9)</span>
+                            <span>Sobrepeso (25-29.9)</span>
+                            <span>Obeso (&ge;30)</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+
+        <!-- Profile Form Card -->
+        <div class="card">
+            <h2 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 1.25rem; display: flex; align-items: center; gap: 0.5rem;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                Datos Físicos
+            </h2>
+            
+            <form action="{{ url_for('profile') }}" method="POST" id="profile-form">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem;">
+                    <!-- Age Input -->
+                    <div class="form-group">
+                        <label for="age" class="form-label">Edad (años)</label>
+                        <input type="number" 
+                               name="age" 
+                               id="age" 
+                               class="form-input" 
+                               value="{{ current_user.age or '' }}" 
+                               placeholder="ej. 32"
+                               min="1" 
+                               max="120">
+                    </div>
+
+                    <!-- Gender Input -->
+                    <div class="form-group">
+                        <label for="gender" class="form-label">Género</label>
+                        <select name="gender" id="gender" class="form-input" style="height: 48px; appearance: none; background-image: url('data:image/svg+xml;charset=utf-8,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%239ca3af%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Cpath d=%22m6 9 6 6 6-6%22/%3E%3C/svg%3E'); background-repeat: no-repeat; background-position: right 1rem center; background-size: 1.2em;">
+                            <option value="" {% if not current_user.gender %}selected{% endif %}>No especificado</option>
+                            <option value="Masculino" {% if current_user.gender == 'Masculino' %}selected{% endif %}>Masculino</option>
+                            <option value="Femenino" {% if current_user.gender == 'Femenino' %}selected{% endif %}>Femenino</option>
+                            <option value="Otro" {% if current_user.gender == 'Otro' %}selected{% endif %}>Otro</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Height Input -->
+                <div class="form-group">
+                    <label for="height" class="form-label">Altura (estatura en cm)</label>
+                    <div class="weight-input-container">
+                        <input type="number" 
+                               name="height" 
+                               id="height" 
+                               class="form-input" 
+                               value="{{ current_user.height|int if current_user.height else '' }}" 
+                               placeholder="ej. 175" 
+                               min="50" 
+                               max="250"
+                               required>
+                        <span class="weight-unit" style="font-size: 0.95rem;">cm</span>
+                    </div>
+                    <span style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.4rem; display: block;">
+                        Requerido para el cálculo automático de tu Índice de Masa Corporal.
+                    </span>
+                </div>
+
+                <div style="margin-top: 2rem; display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <a href="{{ url_for('index') }}" class="btn btn-secondary" id="cancel-profile-btn">Cancelar</a>
+                    <button type="submit" class="btn" id="save-profile-btn">Guardar Perfil</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

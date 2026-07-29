@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Tracker de Peso{% endblock %}</title>
+    
+    <!-- Meta tags for SEO & Mobile -->
+    <meta name="description" content="Una aplicación familiar premium para registrar y analizar el peso corporal con cálculo de IMC y estadísticas.">
+    <meta name="theme-color" content="#0b0f19">
+    
+    <!-- Chart.js from CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Custom Style -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <header>
+        <div class="nav-container">
+            <a href="{{ url_for('index') }}" class="brand" id="brand-link">
+                <div class="brand-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                        <path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z"></path>
+                        <line x1="16" y1="8" x2="2" y2="22"></line>
+                        <line x1="17.5" y1="15" x2="9" y2="22"></line>
+                    </svg>
+                </div>
+                <span>FamiliaPeso</span>
+            </a>
+            
+            <nav class="nav-menu">
+                {% if current_user.is_authenticated %}
+                    <a href="{{ url_for('index') }}" class="nav-link {% if request.path == '/' %}active{% endif %}" id="nav-dashboard">Panel</a>
+                    <a href="{{ url_for('history') }}" class="nav-link {% if request.path == '/history' %}active{% endif %}" id="nav-history">Historial</a>
+                    
+                    <a href="{{ url_for('profile') }}" class="user-profile-menu" id="nav-profile">
+                        {% if current_user.picture %}
+                            <img src="{{ current_user.picture }}" alt="{{ current_user.name }}" class="avatar">
+                        {% else %}
+                            <div class="avatar mock-avatar">{{ current_user.name[0] if current_user.name else current_user.email[0] }}</div>
+                        {% endif %}
+                        <span style="font-size: 0.9rem; font-weight: 500;">{{ current_user.name or 'Usuario' }}</span>
+                    </a>
+                    
+                    <a href="{{ url_for('logout') }}" class="logout-btn" id="nav-logout">Salir</a>
+                {% else %}
+                    <span class="text-secondary" style="font-size: 0.9rem;">Soporte métrico (kg)</span>
+                {% endif %}
+            </nav>
+        </div>
+    </header>
+
+    <main class="app-container">
+        <!-- Flash Alert Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-container">
+                    {% for category, message in messages %}
+                        <div class="flash-message flash-{{ category if category != 'error' else 'danger' }}">
+                            <span>{{ message }}</span>
+                            <button class="flash-close">&times;</button>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer>
+        <p>&copy; 2026 FamiliaPeso. Hecho para registrar el progreso saludable en kilos.</p>
+    </footer>
+
+    <!-- App JavaScript -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>
