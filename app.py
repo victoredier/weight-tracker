@@ -460,7 +460,22 @@ def export_csv():
 # --- App Init Hook ---
 
 with app.app_context():
-    db.create_all()
+    import time
+    # Retry database connection on startup (e.g. waiting for MySQL to boot)
+    retries = 10
+    connected = False
+    while retries > 0:
+        try:
+            db.create_all()
+            connected = True
+            break
+        except Exception as e:
+            retries -= 1
+            print(f"Error connecting to database: {e}")
+            print(f"Database not ready yet. Retrying in 3 seconds... ({retries} retries left)")
+            time.sleep(3)
+    if not connected:
+        print("Could not connect to database after several attempts. Exiting.")
 
 if __name__ == '__main__':
     # Bind to 0.0.0.0 for easier mobile devices testing on local Wi-Fi
