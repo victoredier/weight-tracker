@@ -1,0 +1,18 @@
+{
+  "name": "Controlador de Peso",
+  "short_name": "Peso Control",
+  "description": "Una aplicación familiar premium para registrar y analizar el peso corporal.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0b0f19",
+  "theme_color": "#0b0f19",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/static/img/app_icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
