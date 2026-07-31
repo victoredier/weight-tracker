@@ -15,6 +15,10 @@ from models import User, WeightLog
 app = Flask(__name__)
 app.config.from_object(Config)
 
+# Trust proxy headers (X-Forwarded-For, X-Forwarded-Proto, etc.) when running behind a proxy like Traefik
+from werkzeug.middleware.proxy_fix import ProxyFix
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1, x_prefix=1)
+
 # Initialize Database
 db.init_app(app)
 
