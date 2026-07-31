@@ -847,3 +847,36 @@ footer {
     border-top: 1px solid var(--card-border);
     margin-top: auto;
 }
+
+/* Chart filter buttons styling */
+.chart-filter-group {
+    display: flex;
+    gap: 0.25rem;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 0.25rem;
+    border-radius: 8px;
+    border: 1px solid var(--card-border);
+}
+
+.chart-filter-btn {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    padding: 0.35rem 0.75rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.chart-filter-btn:hover {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.chart-filter-btn.active {
+    color: white;
+    background: var(--color-primary);
+    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+}

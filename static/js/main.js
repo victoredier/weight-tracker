@@ -130,13 +130,88 @@ function setupWeightChart() {
     }
 
     // Sort chart data chronologically (oldest first) for correct graph flow
-    chartData.sort((a, b) => new Date(a.date) - new Date(b.date));
+    chartData.sort((a, b) => new Date(a.date.replace(' ', 'T')) - new Date(b.date.replace(' ', 'T')));
 
-    const labels = chartData.map(d => {
-        const dateObj = new Date(d.date);
-        return dateObj.toLocaleDateString('es-ES', { month: 'short', day: 'numeric' });
-    });
-    const values = chartData.map(d => d.weight);
+    // Helper functions for formatting labels and tooltips
+    function formatLabel(dateStr, includeTime) {
+        const normalizedStr = dateStr.replace(' ', 'T');
+        const dateObj = new Date(normalizedStr);
+        const base = dateObj.toLocaleDateString('es-ES', { month: 'short', day: 'numeric' });
+        if (includeTime) {
+            const time = dateObj.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+            return `${base} ${time}`;
+        }
+        return base;
+    }
+
+    function formatTooltip(dateStr, weight, prefix = '') {
+        const normalizedStr = dateStr.replace(' ', 'T');
+        const dateObj = new Date(normalizedStr);
+        const datePart = dateObj.toLocaleDateString('es-ES', { weekday: 'short', month: 'short', day: 'numeric' });
+        const timePart = dateObj.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+        const labelPrefix = prefix ? `${prefix}: ` : '';
+        return `${labelPrefix}${weight.toFixed(1)} kg (${datePart}, ${timePart})`;
+    }
+
+    // Process and filter data
+    let currentFilteredData = [];
+    function getFilteredData(filterType) {
+        if (filterType === 'all') {
+            return chartData.map(d => ({
+                weight: d.weight,
+                label: formatLabel(d.date, true),
+                tooltip: formatTooltip(d.date, d.weight)
+            }));
+        } else if (filterType === 'am') {
+            return chartData
+                .filter(d => {
+                    const normalizedStr = d.date.replace(' ', 'T');
+                    const hour = new Date(normalizedStr).getHours();
+                    return hour < 12;
+                })
+                .map(d => ({
+                    weight: d.weight,
+                    label: formatLabel(d.date, false),
+                    tooltip: formatTooltip(d.date, d.weight, 'Despertar (AM)')
+                }));
+        } else if (filterType === 'pm') {
+            return chartData
+                .filter(d => {
+                    const normalizedStr = d.date.replace(' ', 'T');
+                    const hour = new Date(normalizedStr).getHours();
+                    return hour >= 12;
+                })
+                .map(d => ({
+                    weight: d.weight,
+                    label: formatLabel(d.date, false),
+                    tooltip: formatTooltip(d.date, d.weight, 'Dormir (PM)')
+                }));
+        } else if (filterType === 'average') {
+            const groups = {};
+            chartData.forEach(d => {
+                const dateKey = d.date.split(' ')[0]; // 'YYYY-MM-DD'
+                if (!groups[dateKey]) {
+                    groups[dateKey] = [];
+                }
+                groups[dateKey].push(d.weight);
+            });
+            const sortedDates = Object.keys(groups).sort();
+            return sortedDates.map(dateKey => {
+                const weights = groups[dateKey];
+                const avg = weights.reduce((sum, w) => sum + w, 0) / weights.length;
+                const dateStr = `${dateKey} 12:00:00`;
+                return {
+                    weight: avg,
+                    label: formatLabel(dateStr, false),
+                    tooltip: `Promedio: ${avg.toFixed(1)} kg (${weights.length} reg.)`
+                };
+            });
+        }
+        return [];
+    }
+
+    // Default to 'all' filter initially
+    currentFilteredData = getFilteredData('all');
 
     // Gradient fill beneath line
     const gradient = ctx.getContext('2d').createLinearGradient(0, 0, 0, 300);
@@ -144,13 +219,13 @@ function setupWeightChart() {
     gradient.addColorStop(0.5, 'rgba(168, 85, 247, 0.15)');
     gradient.addColorStop(1, 'rgba(99, 102, 241, 0.0)');
 
-    new Chart(ctx, {
+    const chart = new Chart(ctx, {
         type: 'line',
         data: {
-            labels: labels,
+            labels: currentFilteredData.map(d => d.label),
             datasets: [{
                 label: 'Peso (kg)',
-                data: values,
+                data: currentFilteredData.map(d => d.weight),
                 borderColor: '#6366f1',
                 borderWidth: 3,
                 pointBackgroundColor: '#a855f7',
@@ -180,8 +255,12 @@ function setupWeightChart() {
                     cornerRadius: 8,
                     displayColors: false,
                     callbacks: {
+                        title: function() {
+                            return '';
+                        },
                         label: function(context) {
-                            return ` ${context.parsed.y.toFixed(1)} kg`;
+                            const idx = context.dataIndex;
+                            return currentFilteredData[idx] ? ` ${currentFilteredData[idx].tooltip}` : '';
                         }
                     }
                 }
@@ -216,6 +295,25 @@ function setupWeightChart() {
                 }
             }
         }
+    });
+
+    // Wire up filter button clicks
+    const filterBtns = document.querySelectorAll('.chart-filter-btn');
+    filterBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            // Update active class
+            filterBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+
+            // Get filtered data
+            const filterType = btn.getAttribute('data-filter');
+            currentFilteredData = getFilteredData(filterType);
+
+            // Update chart and redraw
+            chart.data.labels = currentFilteredData.map(d => d.label);
+            chart.data.datasets[0].data = currentFilteredData.map(d => d.weight);
+            chart.update();
+        });
     });
 }
 

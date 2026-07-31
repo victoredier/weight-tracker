@@ -82,21 +82,27 @@ def seed_mock_user_data(user, profile_name):
 
     # Seed configurations depending on family member profile
     logs_to_seed = []
+    import datetime as dt
     
     if profile_name == 'papa':
         user.height = 178.0
         user.age = 45
         user.gender = 'Masculino'
         
-        # papa starting weight: 85kg down to 81.5kg
-        weights = [85.2, 84.7, 84.0, 83.5, 83.2, 82.6, 81.9]
-        for idx, w in enumerate(weights):
-            days_ago = (len(weights) - 1 - idx) * 2 # Log every 2 days
-            date = datetime.now()
-            # Simulate historical days
-            import datetime as dt
-            log_date = date - dt.timedelta(days=days_ago)
-            logs_to_seed.append(WeightLog(user_id=user.id, weight=w, date=log_date, notes="Registro automático Papa"))
+        # papa: log two weights per day for the last 7 days
+        # AM weight is generally lower than PM weight
+        base_weights = [85.0, 84.5, 83.8, 83.3, 83.0, 82.4, 81.7]
+        for idx, w in enumerate(base_weights):
+            days_ago = len(base_weights) - 1 - idx
+            date_base = datetime.now() - dt.timedelta(days=days_ago)
+            
+            # AM weight (Despertar - hour 7:30)
+            date_am = datetime(date_base.year, date_base.month, date_base.day, 7, 30)
+            logs_to_seed.append(WeightLog(user_id=user.id, weight=w, date=date_am, notes="Ayunas al despertar"))
+            
+            # PM weight (Dormir - hour 22:15) - slightly heavier
+            date_pm = datetime(date_base.year, date_base.month, date_base.day, 22, 15)
+            logs_to_seed.append(WeightLog(user_id=user.id, weight=w + 0.6, date=date_pm, notes="Antes de acostarse"))
             
     elif profile_name == 'mama':
         user.height = 164.0
@@ -104,25 +110,36 @@ def seed_mock_user_data(user, profile_name):
         user.gender = 'Femenino'
         
         # mama starting weight: 64.5kg down to 62.0kg
-        weights = [64.5, 64.0, 63.8, 63.2, 62.9, 62.5, 62.0]
-        for idx, w in enumerate(weights):
-            days_ago = (len(weights) - 1 - idx) * 3
-            import datetime as dt
-            log_date = datetime.now() - dt.timedelta(days=days_ago)
-            logs_to_seed.append(WeightLog(user_id=user.id, weight=w, date=log_date, notes="Registro automático Mama"))
+        base_weights = [64.2, 63.8, 63.5, 63.0, 62.7, 62.2, 61.8]
+        for idx, w in enumerate(base_weights):
+            days_ago = len(base_weights) - 1 - idx
+            date_base = datetime.now() - dt.timedelta(days=days_ago)
+            
+            # AM weight
+            date_am = datetime(date_base.year, date_base.month, date_base.day, 8, 0)
+            logs_to_seed.append(WeightLog(user_id=user.id, weight=w, date=date_am, notes="Ayunas"))
+            
+            # PM weight
+            date_pm = datetime(date_base.year, date_base.month, date_base.day, 21, 45)
+            logs_to_seed.append(WeightLog(user_id=user.id, weight=w + 0.5, date=date_pm, notes="Después de cenar"))
             
     elif profile_name == 'hijo':
         user.height = 142.0
         user.age = 11
         user.gender = 'Masculino'
         
-        # hijo starting weight growing slowly: 39.5kg up to 40.5kg
-        weights = [39.5, 39.7, 39.9, 40.0, 40.2, 40.3, 40.5]
-        for idx, w in enumerate(weights):
-            days_ago = (len(weights) - 1 - idx) * 4
-            import datetime as dt
-            log_date = datetime.now() - dt.timedelta(days=days_ago)
-            logs_to_seed.append(WeightLog(user_id=user.id, weight=w, date=log_date, notes="Registro automático Hijo"))
+        base_weights = [39.3, 39.5, 39.7, 39.9, 40.1, 40.2, 40.4]
+        for idx, w in enumerate(base_weights):
+            days_ago = len(base_weights) - 1 - idx
+            date_base = datetime.now() - dt.timedelta(days=days_ago)
+            
+            # AM weight
+            date_am = datetime(date_base.year, date_base.month, date_base.day, 7, 45)
+            logs_to_seed.append(WeightLog(user_id=user.id, weight=w, date=date_am, notes="Despertando"))
+            
+            # PM weight
+            date_pm = datetime(date_base.year, date_base.month, date_base.day, 21, 30)
+            logs_to_seed.append(WeightLog(user_id=user.id, weight=w + 0.4, date=date_pm, notes="Noche"))
 
     db.session.add(user)
     for log in logs_to_seed:
