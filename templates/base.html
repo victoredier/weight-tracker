@@ -33,7 +33,7 @@
                         <line x1="17.5" y1="15" x2="9" y2="22"></line>
                     </svg>
                 </div>
-                <span>Controlador de Peso</span>
+                <span class="brand-text">Controlador de Peso</span>
             </a>
             
             <nav class="nav-menu">
@@ -47,7 +47,7 @@
                         {% else %}
                             <div class="avatar mock-avatar">{{ current_user.name[0] if current_user.name else current_user.email[0] }}</div>
                         {% endif %}
-                        <span style="font-size: 0.9rem; font-weight: 500;">{{ current_user.name or 'Usuario' }}</span>
+                        <span class="profile-name" style="font-size: 0.9rem; font-weight: 500;">{{ current_user.name or 'Usuario' }}</span>
                     </a>
                     
                     <a href="{{ url_for('logout') }}" class="logout-btn" id="nav-logout">Salir</a>

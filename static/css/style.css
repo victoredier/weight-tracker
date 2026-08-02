@@ -303,6 +303,94 @@ header {
     }
 }
 
+/* Dashboard Container Layout (Flat Grid/Flex structure) */
+.dashboard-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.dashboard-form {
+    order: 1;
+}
+.dashboard-greeting {
+    order: 2;
+}
+.dashboard-summary {
+    order: 3;
+}
+.dashboard-chart {
+    order: 4;
+}
+.dashboard-recent {
+    order: 5;
+}
+.dashboard-bmi-alert {
+    order: 6;
+}
+
+@media (min-width: 900px) {
+    .dashboard-container {
+        display: grid;
+        grid-template-columns: 380px 1fr;
+        gap: 1.5rem;
+    }
+    
+    /* Reset order properties for desktop */
+    .dashboard-greeting,
+    .dashboard-summary,
+    .dashboard-form,
+    .dashboard-bmi-alert,
+    .dashboard-chart,
+    .dashboard-recent {
+        order: unset;
+    }
+    
+    .dashboard-greeting {
+        grid-column: 1 / span 2;
+        grid-row: 1;
+    }
+    .dashboard-summary {
+        grid-column: 1 / span 2;
+        grid-row: 2;
+    }
+    .dashboard-form {
+        grid-column: 1;
+        grid-row: 3;
+    }
+    .dashboard-bmi-alert {
+        grid-column: 1;
+        grid-row: 4;
+    }
+    .dashboard-chart {
+        grid-column: 2;
+        grid-row: 3;
+    }
+    .dashboard-recent {
+        grid-column: 2;
+        grid-row: 4;
+    }
+}
+
+/* Responsive Header adjustments */
+@media (max-width: 768px) {
+    .profile-name {
+        display: none;
+    }
+    .nav-container {
+        padding: 0.75rem 1rem;
+    }
+    .nav-menu {
+        gap: 0.75rem;
+    }
+}
+
+@media (max-width: 580px) {
+    .brand-text {
+        display: none;
+    }
+}
+
 /* Forms styling */
 .form-group {
     margin-bottom: 1.25rem;
