@@ -2,8 +2,10 @@ import os
 import json
 import csv
 import io
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from flask import Flask, render_template, redirect, url_for, request, flash, jsonify, Response
+
+COLOMBIA_TZ = timezone(timedelta(hours=-5))
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from authlib.integrations.flask_client import OAuth
@@ -84,6 +86,9 @@ def seed_mock_user_data(user, profile_name):
     if WeightLog.query.filter_by(user_id=user.id).first():
         return
 
+    def to_utc_naive(dt_local):
+        return dt_local.replace(tzinfo=COLOMBIA_TZ).astimezone(timezone.utc).replace(tzinfo=None)
+
     # Seed configurations depending on family member profile
     logs_to_seed = []
     import datetime as dt
@@ -101,11 +106,11 @@ def seed_mock_user_data(user, profile_name):
             date_base = datetime.now() - dt.timedelta(days=days_ago)
             
             # AM weight (Despertar - hour 7:30)
-            date_am = datetime(date_base.year, date_base.month, date_base.day, 7, 30)
+            date_am = to_utc_naive(datetime(date_base.year, date_base.month, date_base.day, 7, 30))
             logs_to_seed.append(WeightLog(user_id=user.id, weight=w, date=date_am, notes="Ayunas al despertar"))
             
             # PM weight (Dormir - hour 22:15) - slightly heavier
-            date_pm = datetime(date_base.year, date_base.month, date_base.day, 22, 15)
+            date_pm = to_utc_naive(datetime(date_base.year, date_base.month, date_base.day, 22, 15))
             logs_to_seed.append(WeightLog(user_id=user.id, weight=w + 0.6, date=date_pm, notes="Antes de acostarse"))
             
     elif profile_name == 'mama':
@@ -120,11 +125,11 @@ def seed_mock_user_data(user, profile_name):
             date_base = datetime.now() - dt.timedelta(days=days_ago)
             
             # AM weight
-            date_am = datetime(date_base.year, date_base.month, date_base.day, 8, 0)
+            date_am = to_utc_naive(datetime(date_base.year, date_base.month, date_base.day, 8, 0))
             logs_to_seed.append(WeightLog(user_id=user.id, weight=w, date=date_am, notes="Ayunas"))
             
             # PM weight
-            date_pm = datetime(date_base.year, date_base.month, date_base.day, 21, 45)
+            date_pm = to_utc_naive(datetime(date_base.year, date_base.month, date_base.day, 21, 45))
             logs_to_seed.append(WeightLog(user_id=user.id, weight=w + 0.5, date=date_pm, notes="Después de cenar"))
             
     elif profile_name == 'hijo':
@@ -138,11 +143,11 @@ def seed_mock_user_data(user, profile_name):
             date_base = datetime.now() - dt.timedelta(days=days_ago)
             
             # AM weight
-            date_am = datetime(date_base.year, date_base.month, date_base.day, 7, 45)
+            date_am = to_utc_naive(datetime(date_base.year, date_base.month, date_base.day, 7, 45))
             logs_to_seed.append(WeightLog(user_id=user.id, weight=w, date=date_am, notes="Despertando"))
             
             # PM weight
-            date_pm = datetime(date_base.year, date_base.month, date_base.day, 21, 30)
+            date_pm = to_utc_naive(datetime(date_base.year, date_base.month, date_base.day, 21, 30))
             logs_to_seed.append(WeightLog(user_id=user.id, weight=w + 0.4, date=date_pm, notes="Noche"))
 
     db.session.add(user)
@@ -167,7 +172,7 @@ def index():
     if logs_count > 0:
         latest_log = logs[-1]
         latest_weight = latest_log.weight
-        latest_weight_date = latest_log.date
+        latest_weight_date = latest_log.local_date
         
         if logs_count > 1:
             first_weight = logs[0].weight
@@ -189,7 +194,7 @@ def index():
     chart_data = []
     for log in logs:
         chart_data.append({
-            'date': log.date.strftime('%Y-%m-%d %H:%M:%S'),
+            'date': log.local_date.strftime('%Y-%m-%d %H:%M:%S'),
             'weight': log.weight
         })
         
@@ -320,12 +325,15 @@ def add_weight():
         return redirect(url_for('index'))
         
     # Parse custom date if provided
-    log_date = datetime.now()
     if custom_date_str and custom_time_str:
         try:
-            log_date = datetime.strptime(f"{custom_date_str} {custom_time_str}", "%Y-%m-%d %H:%M")
+            local_date = datetime.strptime(f"{custom_date_str} {custom_time_str}", "%Y-%m-%d %H:%M")
+            log_date = local_date.replace(tzinfo=COLOMBIA_TZ).astimezone(timezone.utc).replace(tzinfo=None)
         except ValueError:
             flash('Fecha u hora manual no válida. Se usará la fecha actual.', 'error')
+            log_date = datetime.utcnow()
+    else:
+        log_date = datetime.utcnow()
             
     new_log = WeightLog(
         user_id=current_user.id,
@@ -378,7 +386,8 @@ def edit_weight(log_id):
     # Parse date/time
     if custom_date_str and custom_time_str:
         try:
-            log.date = datetime.strptime(f"{custom_date_str} {custom_time_str}", "%Y-%m-%d %H:%M")
+            local_date = datetime.strptime(f"{custom_date_str} {custom_time_str}", "%Y-%m-%d %H:%M")
+            log.date = local_date.replace(tzinfo=COLOMBIA_TZ).astimezone(timezone.utc).replace(tzinfo=None)
         except ValueError:
             flash('Error en el formato de fecha/hora.', 'error')
             return redirect(url_for('history', edit=log_id))
@@ -448,7 +457,7 @@ def export_csv():
     # Rows
     for log in logs:
         writer.writerow([
-            log.date.strftime('%Y-%m-%d %H:%M:%S'),
+            log.local_date.strftime('%Y-%m-%d %H:%M:%S'),
             f"{log.weight:.1f}",
             log.notes or ''
         ])

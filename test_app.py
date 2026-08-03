@@ -82,5 +82,20 @@ class WeightTrackerTestCase(unittest.TestCase):
         self.assertEqual(user.bmi, 22.9)
         self.assertEqual(user.bmi_category['name'], 'Normal')
 
+    def test_timezone_conversion(self):
+        from datetime import datetime, timezone, timedelta
+        # Create a test log with a specific UTC date
+        utc_date = datetime(2026, 8, 3, 0, 0, 0)
+        log = WeightLog(user_id=1, weight=75.0, date=utc_date)
+        
+        # Colombia timezone is UTC-5, so 2026-08-03 00:00:00 UTC should be 2026-08-02 19:00:00
+        local_dt = log.local_date
+        self.assertEqual(local_dt.year, 2026)
+        self.assertEqual(local_dt.month, 8)
+        self.assertEqual(local_dt.day, 2)
+        self.assertEqual(local_dt.hour, 19)
+        self.assertEqual(local_dt.minute, 0)
+        self.assertEqual(local_dt.tzinfo.utcoffset(local_dt), timedelta(hours=-5))
+
 if __name__ == '__main__':
     unittest.main()

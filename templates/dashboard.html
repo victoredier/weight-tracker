@@ -215,7 +215,7 @@
                         <tbody>
                             {% for log in recent_logs %}
                                 <tr>
-                                    <td>{{ log.date.strftime('%d/%m/%Y %H:%M') }}</td>
+                                    <td>{{ log.local_date.strftime('%d/%m/%Y %H:%M') }}</td>
                                     <td style="font-weight: 700;">{{ "%.1f"|format(log.weight) }} kg</td>
                                     <td style="font-size: 0.85rem; color: var(--text-secondary);">{{ log.notes or '' }}</td>
                                 </tr>

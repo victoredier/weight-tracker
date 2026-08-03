@@ -76,3 +76,10 @@ class WeightLog(db.Model):
     date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     notes = db.Column(db.Text, nullable=True)
+
+    @property
+    def local_date(self):
+        from datetime import timezone, timedelta
+        colombia_tz = timezone(timedelta(hours=-5))
+        utc_date = self.date.replace(tzinfo=timezone.utc)
+        return utc_date.astimezone(colombia_tz)
