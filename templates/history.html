@@ -90,7 +90,7 @@
                     {% for log in logs %}
                         <tr>
                             <td style="white-space: nowrap;">
-                                {{ log.local_date.strftime('%d/%m/%Y %H:%M') }}
+                                {{ log.local_date.strftime('%d/%m/%Y %I:%M %p') }}
                             </td>
                             <td style="font-weight: 700; font-size: 1.05rem;">
                                 {{ "%.1f"|format(log.weight) }} kg

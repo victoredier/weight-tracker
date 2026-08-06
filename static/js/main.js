@@ -12,6 +12,9 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // 4. Flash Message Auto-dismissal
     setupFlashDismiss();
+
+    // 5. Setup Theme Selector and OS theme preference sync
+    setupThemeToggle();
 });
 
 /**
@@ -108,6 +111,9 @@ function setupDatePickerToggle() {
 /**
  * Setup and render history line chart using Chart.js
  */
+/**
+ * Setup and render history line chart using Chart.js
+ */
 function setupWeightChart() {
     const ctx = document.getElementById('weightChart');
     if (!ctx) return;
@@ -138,7 +144,7 @@ function setupWeightChart() {
         const dateObj = new Date(normalizedStr);
         const base = dateObj.toLocaleDateString('es-ES', { month: 'short', day: 'numeric' });
         if (includeTime) {
-            const time = dateObj.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+            const time = dateObj.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: true });
             return `${base} ${time}`;
         }
         return base;
@@ -148,7 +154,7 @@ function setupWeightChart() {
         const normalizedStr = dateStr.replace(' ', 'T');
         const dateObj = new Date(normalizedStr);
         const datePart = dateObj.toLocaleDateString('es-ES', { weekday: 'short', month: 'short', day: 'numeric' });
-        const timePart = dateObj.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+        const timePart = dateObj.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: true });
         const labelPrefix = prefix ? `${prefix}: ` : '';
         return `${labelPrefix}${weight.toFixed(1)} kg (${datePart}, ${timePart})`;
     }
@@ -219,6 +225,15 @@ function setupWeightChart() {
     gradient.addColorStop(0.5, 'rgba(168, 85, 247, 0.15)');
     gradient.addColorStop(1, 'rgba(99, 102, 241, 0.0)');
 
+    // Theme adaptive colors
+    let currentTheme = document.documentElement.getAttribute('data-theme');
+    if (!currentTheme) {
+        currentTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+    const isLight = currentTheme === 'light';
+    const gridColor = isLight ? 'rgba(0, 0, 0, 0.06)' : 'rgba(255, 255, 255, 0.05)';
+    const ticksColor = isLight ? '#64748b' : '#9ca3af';
+
     const chart = new Chart(ctx, {
         type: 'line',
         data: {
@@ -268,11 +283,11 @@ function setupWeightChart() {
             scales: {
                 x: {
                     grid: {
-                        color: 'rgba(255, 255, 255, 0.05)',
+                        color: gridColor,
                         drawBorder: false
                     },
                     ticks: {
-                        color: '#9ca3af',
+                        color: ticksColor,
                         font: {
                             family: 'Outfit'
                         }
@@ -280,11 +295,11 @@ function setupWeightChart() {
                 },
                 y: {
                     grid: {
-                        color: 'rgba(255, 255, 255, 0.05)',
+                        color: gridColor,
                         drawBorder: false
                     },
                     ticks: {
-                        color: '#9ca3af',
+                        color: ticksColor,
                         font: {
                             family: 'Outfit'
                         },
@@ -296,6 +311,9 @@ function setupWeightChart() {
             }
         }
     });
+
+    // Save chart instance globally to update theme dynamically
+    window.weightChartInstance = chart;
 
     // Wire up filter button clicks
     const filterBtns = document.querySelectorAll('.chart-filter-btn');
@@ -333,4 +351,54 @@ function setupFlashDismiss() {
             }
         });
     });
+}
+
+/**
+ * Setup theme toggle actions and system preference listeners
+ */
+function setupThemeToggle() {
+    const toggleBtn = document.getElementById('theme-toggle');
+    if (!toggleBtn) return;
+    
+    toggleBtn.addEventListener('click', () => {
+        let currentTheme = document.documentElement.getAttribute('data-theme');
+        if (!currentTheme) {
+            // Check system preference
+            const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            currentTheme = systemPrefersDark ? 'dark' : 'light';
+        }
+        
+        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', newTheme);
+        localStorage.setItem('theme', newTheme);
+        
+        // Update chart colors dynamically if it is loaded
+        updateChartColors(newTheme);
+    });
+    
+    // Listen for system color scheme changes
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+        // Only adapt if the user hasn't explicitly set a theme preference
+        if (!localStorage.getItem('theme')) {
+            const systemTheme = e.matches ? 'dark' : 'light';
+            updateChartColors(systemTheme);
+        }
+    });
+}
+
+/**
+ * Dynamically updates chart grid and ticks colors when theme changes
+ */
+function updateChartColors(theme) {
+    if (!window.weightChartInstance) return;
+    
+    const isLight = theme === 'light';
+    const gridColor = isLight ? 'rgba(0, 0, 0, 0.06)' : 'rgba(255, 255, 255, 0.05)';
+    const ticksColor = isLight ? '#64748b' : '#9ca3af';
+    
+    window.weightChartInstance.options.scales.x.grid.color = gridColor;
+    window.weightChartInstance.options.scales.y.grid.color = gridColor;
+    window.weightChartInstance.options.scales.x.ticks.color = ticksColor;
+    window.weightChartInstance.options.scales.y.ticks.color = ticksColor;
+    window.weightChartInstance.update();
 }
