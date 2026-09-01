@@ -1126,3 +1126,52 @@ footer {
     background: var(--color-primary);
     box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
 }
+
+/* Chart Legend Badges */
+.chart-legend-badges {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.legend-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    background: var(--btn-sec-bg);
+    padding: 0.2rem 0.6rem;
+    border-radius: 9999px;
+    border: 1px solid var(--card-border);
+    user-select: none;
+    transition: all var(--transition-fast);
+}
+
+.legend-badge.badge-weekend {
+    color: #f59e0b;
+    background: rgba(245, 158, 11, 0.08);
+    border-color: rgba(245, 158, 11, 0.25);
+    font-weight: 600;
+}
+
+.legend-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    flex-shrink: 0;
+}
+
+.dot-weekday {
+    background-color: #a855f7;
+    box-shadow: 0 0 5px rgba(168, 85, 247, 0.5);
+}
+
+.dot-weekend {
+    background-color: #f59e0b;
+    box-shadow: 0 0 6px rgba(245, 158, 11, 0.7);
+}
+

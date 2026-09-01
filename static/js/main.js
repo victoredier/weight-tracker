@@ -109,10 +109,7 @@ function setupDatePickerToggle() {
 }
 
 /**
- * Setup and render history line chart using Chart.js
- */
-/**
- * Setup and render history line chart using Chart.js
+ * Setup and render history line chart using Chart.js with Weekend Identification
  */
 function setupWeightChart() {
     const ctx = document.getElementById('weightChart');
@@ -131,18 +128,39 @@ function setupWeightChart() {
     }
 
     if (chartData.length === 0) {
-        // Hide chart card or display message if no data
         return;
     }
 
     // Sort chart data chronologically (oldest first) for correct graph flow
     chartData.sort((a, b) => new Date(a.date.replace(' ', 'T')) - new Date(b.date.replace(' ', 'T')));
 
-    // Helper functions for formatting labels and tooltips
-    function formatLabel(dateStr, includeTime) {
+    // Helper functions for dates, weekends, labels and tooltips
+    function parseDate(dateStr) {
         const normalizedStr = dateStr.replace(' ', 'T');
-        const dateObj = new Date(normalizedStr);
-        const base = dateObj.toLocaleDateString('es-ES', { month: 'short', day: 'numeric' });
+        return new Date(normalizedStr);
+    }
+
+    function isWeekendDay(dateObj) {
+        const day = dateObj.getDay();
+        return day === 0 || day === 6; // 0 = Sunday (Dom), 6 = Saturday (Sáb)
+    }
+
+    function getDayName(dateObj) {
+        const days = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+        return days[dateObj.getDay()];
+    }
+
+    function getFullDayName(dateObj) {
+        const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+        return days[dateObj.getDay()];
+    }
+
+    function formatLabel(dateStr, includeTime) {
+        const dateObj = parseDate(dateStr);
+        const dayAbbr = getDayName(dateObj);
+        const month = dateObj.toLocaleDateString('es-ES', { month: 'short' });
+        const dayNum = dateObj.getDate();
+        const base = `${dayAbbr} ${dayNum} ${month}`;
         if (includeTime) {
             const time = dateObj.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: true });
             return `${base} ${time}`;
@@ -151,47 +169,65 @@ function setupWeightChart() {
     }
 
     function formatTooltip(dateStr, weight, prefix = '') {
-        const normalizedStr = dateStr.replace(' ', 'T');
-        const dateObj = new Date(normalizedStr);
-        const datePart = dateObj.toLocaleDateString('es-ES', { weekday: 'short', month: 'short', day: 'numeric' });
-        const timePart = dateObj.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: true });
+        const dateObj = parseDate(dateStr);
+        const fullDay = getFullDayName(dateObj);
+        const isWknd = isWeekendDay(dateObj);
+        const dateFormatted = dateObj.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' });
+        const timeFormatted = dateObj.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: true });
         const labelPrefix = prefix ? `${prefix}: ` : '';
-        return `${labelPrefix}${weight.toFixed(1)} kg (${datePart}, ${timePart})`;
+        const weekendTag = isWknd ? ` • Fin de semana (${fullDay})` : ` • ${fullDay}`;
+        return `${labelPrefix}${weight.toFixed(1)} kg (${dateFormatted}, ${timeFormatted})${weekendTag}`;
     }
 
-    // Process and filter data
+    // Process and filter data with weekend metadata
     let currentFilteredData = [];
     function getFilteredData(filterType) {
         if (filterType === 'all') {
-            return chartData.map(d => ({
-                weight: d.weight,
-                label: formatLabel(d.date, true),
-                tooltip: formatTooltip(d.date, d.weight)
-            }));
+            return chartData.map(d => {
+                const dateObj = parseDate(d.date);
+                return {
+                    weight: d.weight,
+                    label: formatLabel(d.date, true),
+                    tooltip: formatTooltip(d.date, d.weight),
+                    isWeekend: isWeekendDay(dateObj),
+                    fullDay: getFullDayName(dateObj),
+                    dateStr: d.date
+                };
+            });
         } else if (filterType === 'am') {
             return chartData
                 .filter(d => {
-                    const normalizedStr = d.date.replace(' ', 'T');
-                    const hour = new Date(normalizedStr).getHours();
+                    const hour = parseDate(d.date).getHours();
                     return hour < 12;
                 })
-                .map(d => ({
-                    weight: d.weight,
-                    label: formatLabel(d.date, false),
-                    tooltip: formatTooltip(d.date, d.weight, 'Despertar (AM)')
-                }));
+                .map(d => {
+                    const dateObj = parseDate(d.date);
+                    return {
+                        weight: d.weight,
+                        label: formatLabel(d.date, false),
+                        tooltip: formatTooltip(d.date, d.weight, 'Despertar (AM)'),
+                        isWeekend: isWeekendDay(dateObj),
+                        fullDay: getFullDayName(dateObj),
+                        dateStr: d.date
+                    };
+                });
         } else if (filterType === 'pm') {
             return chartData
                 .filter(d => {
-                    const normalizedStr = d.date.replace(' ', 'T');
-                    const hour = new Date(normalizedStr).getHours();
+                    const hour = parseDate(d.date).getHours();
                     return hour >= 12;
                 })
-                .map(d => ({
-                    weight: d.weight,
-                    label: formatLabel(d.date, false),
-                    tooltip: formatTooltip(d.date, d.weight, 'Dormir (PM)')
-                }));
+                .map(d => {
+                    const dateObj = parseDate(d.date);
+                    return {
+                        weight: d.weight,
+                        label: formatLabel(d.date, false),
+                        tooltip: formatTooltip(d.date, d.weight, 'Dormir (PM)'),
+                        isWeekend: isWeekendDay(dateObj),
+                        fullDay: getFullDayName(dateObj),
+                        dateStr: d.date
+                    };
+                });
         } else if (filterType === 'average') {
             const groups = {};
             chartData.forEach(d => {
@@ -206,10 +242,18 @@ function setupWeightChart() {
                 const weights = groups[dateKey];
                 const avg = weights.reduce((sum, w) => sum + w, 0) / weights.length;
                 const dateStr = `${dateKey} 12:00:00`;
+                const dateObj = parseDate(dateStr);
+                const isWknd = isWeekendDay(dateObj);
+                const fullDay = getFullDayName(dateObj);
+                const dateFormatted = dateObj.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' });
+                const weekendTag = isWknd ? ` • Fin de semana (${fullDay})` : ` • ${fullDay}`;
                 return {
                     weight: avg,
                     label: formatLabel(dateStr, false),
-                    tooltip: `Promedio: ${avg.toFixed(1)} kg (${weights.length} reg.)`
+                    tooltip: `Promedio: ${avg.toFixed(1)} kg (${weights.length} reg. - ${dateFormatted})${weekendTag}`,
+                    isWeekend: isWknd,
+                    fullDay: fullDay,
+                    dateStr: dateStr
                 };
             });
         }
@@ -218,6 +262,17 @@ function setupWeightChart() {
 
     // Default to 'all' filter initially
     currentFilteredData = getFilteredData('all');
+
+    // Helper to apply dataset styling (weekend amber vs weekday purple)
+    function applyDatasetStyles(dataset, dataList) {
+        dataset.data = dataList.map(d => d.weight);
+        dataset.pointBackgroundColor = dataList.map(d => d.isWeekend ? '#f59e0b' : '#a855f7');
+        dataset.pointBorderColor = dataList.map(d => '#ffffff');
+        dataset.pointBorderWidth = dataList.map(d => d.isWeekend ? 2.5 : 2);
+        dataset.pointRadius = dataList.map(d => d.isWeekend ? 6 : 4);
+        dataset.pointHoverRadius = dataList.map(d => d.isWeekend ? 8.5 : 6);
+        dataset.pointHoverBackgroundColor = dataList.map(d => d.isWeekend ? '#d97706' : '#9333ea');
+    }
 
     // Gradient fill beneath line
     const gradient = ctx.getContext('2d').createLinearGradient(0, 0, 0, 300);
@@ -234,25 +289,84 @@ function setupWeightChart() {
     const gridColor = isLight ? 'rgba(0, 0, 0, 0.06)' : 'rgba(255, 255, 255, 0.05)';
     const ticksColor = isLight ? '#64748b' : '#9ca3af';
 
+    // Chart.js Plugin to draw vertical background highlight bands on weekends
+    const weekendBackgroundPlugin = {
+        id: 'weekendBackground',
+        beforeDatasetsDraw(chart) {
+            const { ctx, chartArea, scales } = chart;
+            if (!chartArea || !scales || !scales.x) return;
+            const { top, height, left: chartLeft, right: chartRight } = chartArea;
+            const x = scales.x;
+            
+            if (!currentFilteredData || currentFilteredData.length === 0) return;
+
+            let theme = document.documentElement.getAttribute('data-theme');
+            if (!theme) {
+                theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+            }
+            const isLightMode = theme === 'light';
+            const bandColor = isLightMode ? 'rgba(245, 158, 11, 0.08)' : 'rgba(245, 158, 11, 0.12)';
+            const bandTopColor = isLightMode ? 'rgba(245, 158, 11, 0.35)' : 'rgba(245, 158, 11, 0.45)';
+
+            ctx.save();
+
+            currentFilteredData.forEach((item, index) => {
+                if (item.isWeekend) {
+                    const xPos = x.getPixelForValue(index);
+                    let halfWidth = 16;
+                    if (currentFilteredData.length > 1) {
+                        if (index === 0) {
+                            const nextX = x.getPixelForValue(1);
+                            halfWidth = Math.min(Math.abs(nextX - xPos) / 2, 28);
+                        } else if (index === currentFilteredData.length - 1) {
+                            const prevX = x.getPixelForValue(index - 1);
+                            halfWidth = Math.min(Math.abs(xPos - prevX) / 2, 28);
+                        } else {
+                            const prevX = x.getPixelForValue(index - 1);
+                            const nextX = x.getPixelForValue(index + 1);
+                            const distPrev = Math.abs(xPos - prevX);
+                            const distNext = Math.abs(nextX - xPos);
+                            halfWidth = Math.min((distPrev + distNext) / 4, 28);
+                        }
+                    }
+
+                    let left = Math.max(xPos - halfWidth, chartLeft);
+                    let width = halfWidth * 2;
+                    if (left + width > chartRight) {
+                        width = chartRight - left;
+                    }
+
+                    // Draw background vertical highlight band
+                    ctx.fillStyle = bandColor;
+                    ctx.fillRect(left, top, width, height);
+
+                    // Draw subtle top border accent
+                    ctx.fillStyle = bandTopColor;
+                    ctx.fillRect(left, top, width, 3);
+                }
+            });
+
+            ctx.restore();
+        }
+    };
+
+    const initialDataset = {
+        label: 'Peso (kg)',
+        borderColor: '#6366f1',
+        borderWidth: 3,
+        tension: 0.35,
+        fill: true,
+        backgroundColor: gradient
+    };
+    applyDatasetStyles(initialDataset, currentFilteredData);
+
     const chart = new Chart(ctx, {
         type: 'line',
         data: {
             labels: currentFilteredData.map(d => d.label),
-            datasets: [{
-                label: 'Peso (kg)',
-                data: currentFilteredData.map(d => d.weight),
-                borderColor: '#6366f1',
-                borderWidth: 3,
-                pointBackgroundColor: '#a855f7',
-                pointBorderColor: '#ffffff',
-                pointBorderWidth: 2,
-                pointRadius: 4,
-                pointHoverRadius: 6,
-                tension: 0.35,
-                fill: true,
-                backgroundColor: gradient
-            }]
+            datasets: [initialDataset]
         },
+        plugins: [weekendBackgroundPlugin],
         options: {
             responsive: true,
             maintainAspectRatio: false,
@@ -287,9 +401,16 @@ function setupWeightChart() {
                         drawBorder: false
                     },
                     ticks: {
-                        color: ticksColor,
-                        font: {
-                            family: 'Outfit'
+                        color: function(context) {
+                            const item = currentFilteredData[context.index];
+                            return (item && item.isWeekend) ? '#f59e0b' : ticksColor;
+                        },
+                        font: function(context) {
+                            const item = currentFilteredData[context.index];
+                            return {
+                                family: 'Outfit',
+                                weight: (item && item.isWeekend) ? '600' : '400'
+                            };
                         }
                     }
                 },
@@ -327,9 +448,9 @@ function setupWeightChart() {
             const filterType = btn.getAttribute('data-filter');
             currentFilteredData = getFilteredData(filterType);
 
-            // Update chart and redraw
+            // Update chart labels and point styles
             chart.data.labels = currentFilteredData.map(d => d.label);
-            chart.data.datasets[0].data = currentFilteredData.map(d => d.weight);
+            applyDatasetStyles(chart.data.datasets[0], currentFilteredData);
             chart.update();
         });
     });
@@ -398,7 +519,15 @@ function updateChartColors(theme) {
     
     window.weightChartInstance.options.scales.x.grid.color = gridColor;
     window.weightChartInstance.options.scales.y.grid.color = gridColor;
-    window.weightChartInstance.options.scales.x.ticks.color = ticksColor;
+    window.weightChartInstance.options.scales.x.ticks.color = function(context) {
+        if (!window.weightChartInstance.data.datasets[0] || !window.weightChartInstance.data.datasets[0].pointBackgroundColor) {
+            return ticksColor;
+        }
+        // If the point is colored amber, it is a weekend
+        const colors = window.weightChartInstance.data.datasets[0].pointBackgroundColor;
+        return (colors[context.index] === '#f59e0b') ? '#f59e0b' : ticksColor;
+    };
     window.weightChartInstance.options.scales.y.ticks.color = ticksColor;
     window.weightChartInstance.update();
 }
+
