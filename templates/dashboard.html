@@ -163,28 +163,61 @@
     <!-- Weight History Chart -->
     <div class="dashboard-chart">
         <div class="card" style="flex-grow: 1; min-height: 380px; display: flex; flex-direction: column;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 0.75rem;">
-                <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
-                    <h2 style="font-size: 1.25rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem; margin: 0;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
-                        Gráfico de Progreso
-                    </h2>
+            <div class="chart-header">
+                <div class="chart-title-section">
+                    <div class="chart-title-row">
+                        <h2 class="chart-title">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+                            Gráfico de Progreso
+                        </h2>
+                        <span class="chart-count-badge" id="chart-count-badge"></span>
+                    </div>
                     <div class="chart-legend-badges">
                         <span class="legend-badge badge-weekday"><span class="legend-dot dot-weekday"></span> Lun - Vie</span>
                         <span class="legend-badge badge-weekend" title="Sábados y Domingos identificados"><span class="legend-dot dot-weekend"></span> Fin de semana (Sáb/Dom)</span>
                     </div>
                 </div>
-                <div class="chart-filter-group">
-                    <button type="button" class="chart-filter-btn active" data-filter="all" id="filter-all">Todos</button>
-                    <button type="button" class="chart-filter-btn" data-filter="am" id="filter-am">Despertar (AM)</button>
-                    <button type="button" class="chart-filter-btn" data-filter="pm" id="filter-pm">Dormir (PM)</button>
-                    <button type="button" class="chart-filter-btn" data-filter="average" id="filter-average">Promedio Diario</button>
+                
+                <div class="chart-controls">
+                    <!-- Selector de Rango Temporal -->
+                    <div class="chart-filter-group chart-range-group" role="group" aria-label="Rango temporal">
+                        <button type="button" class="chart-filter-btn chart-range-btn active" data-range="20d" id="range-20d" title="Mostrar registros de los últimos 20 días">
+                            <span class="btn-text-desktop">Últimos 20 días</span>
+                            <span class="btn-text-mobile">20 días</span>
+                        </button>
+                        <button type="button" class="chart-filter-btn chart-range-btn" data-range="all" id="range-all" title="Mostrar todos los registros históricos">
+                            <span class="btn-text-desktop">Todo el histórico</span>
+                            <span class="btn-text-mobile">Todo</span>
+                        </button>
+                    </div>
+
+                    <!-- Selector de Momento del Día / Promedio -->
+                    <div class="chart-filter-group chart-mode-group" role="group" aria-label="Momento del día">
+                        <button type="button" class="chart-filter-btn chart-type-btn active" data-filter="all" id="filter-all" title="Todos los registros del rango">Todos</button>
+                        <button type="button" class="chart-filter-btn chart-type-btn" data-filter="am" id="filter-am" title="Solo pesajes al despertar (AM)">
+                            <span class="btn-text-desktop">Despertar (AM)</span>
+                            <span class="btn-text-mobile">AM</span>
+                        </button>
+                        <button type="button" class="chart-filter-btn chart-type-btn" data-filter="pm" id="filter-pm" title="Solo pesajes al dormir (PM)">
+                            <span class="btn-text-desktop">Dormir (PM)</span>
+                            <span class="btn-text-mobile">PM</span>
+                        </button>
+                        <button type="button" class="chart-filter-btn chart-type-btn" data-filter="average" id="filter-average" title="Promedio de peso por día">
+                            <span class="btn-text-desktop">Promedio Diario</span>
+                            <span class="btn-text-mobile">Promedio</span>
+                        </button>
+                    </div>
                 </div>
             </div>
             
             {% if stats.logs_count > 0 %}
                 <div style="position: relative; flex-grow: 1; min-height: 280px; width: 100%;">
                     <canvas id="weightChart"></canvas>
+                    <div id="chart-empty-filter" class="chart-empty-state" style="display: none;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-muted); margin-bottom: 0.5rem;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                        <p id="chart-empty-message" style="margin-bottom: 0.75rem; color: var(--text-secondary); font-size: 0.9rem;">No hay registros en los últimos 20 días con este filtro.</p>
+                        <button type="button" class="btn btn-secondary btn-sm" id="btn-chart-reset-range">Ver todo el histórico</button>
+                    </div>
                 </div>
             {% else %}
                 <div class="empty-state" style="margin: auto;">

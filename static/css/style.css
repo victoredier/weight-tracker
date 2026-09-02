@@ -1094,11 +1094,63 @@ footer {
     margin-top: auto;
 }
 
+/* Chart header & controls */
+.chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1.25rem;
+    flex-wrap: wrap;
+    gap: 0.85rem;
+}
+
+.chart-title-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+}
+
+.chart-title-row {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    flex-wrap: wrap;
+}
+
+.chart-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0;
+}
+
+.chart-count-badge {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--color-primary);
+    background: rgba(99, 102, 241, 0.12);
+    border: 1px solid rgba(99, 102, 241, 0.25);
+    padding: 0.15rem 0.55rem;
+    border-radius: 9999px;
+    letter-spacing: 0.01em;
+    user-select: none;
+    transition: all var(--transition-fast);
+}
+
+.chart-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
 /* Chart filter buttons styling */
 .chart-filter-group {
     display: flex;
     gap: 0.25rem;
-    background: rgba(0, 0, 0, 0.2);
+    background: var(--input-bg);
     padding: 0.25rem;
     border-radius: 8px;
     border: 1px solid var(--card-border);
@@ -1108,12 +1160,16 @@ footer {
     background: none;
     border: none;
     color: var(--text-secondary);
-    padding: 0.35rem 0.75rem;
+    padding: 0.35rem 0.7rem;
     font-size: 0.8rem;
     font-weight: 600;
     border-radius: 6px;
     cursor: pointer;
     transition: all var(--transition-fast);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
 }
 
 .chart-filter-btn:hover {
@@ -1125,6 +1181,49 @@ footer {
     color: white;
     background: var(--color-primary);
     box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+}
+
+/* Responsive button text for compact screens */
+.btn-text-mobile {
+    display: none;
+}
+
+@media (max-width: 640px) {
+    .btn-text-desktop {
+        display: none;
+    }
+    .btn-text-mobile {
+        display: inline;
+    }
+    .chart-controls {
+        width: 100%;
+        gap: 0.4rem;
+    }
+    .chart-range-group,
+    .chart-mode-group {
+        flex: 1;
+    }
+    .chart-filter-btn {
+        flex: 1;
+        padding: 0.35rem 0.3rem;
+        font-size: 0.72rem;
+    }
+}
+
+/* Chart contextual empty state overlay */
+.chart-empty-state {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: var(--card-bg);
+    backdrop-filter: blur(6px);
+    border-radius: 8px;
+    z-index: 10;
+    text-align: center;
+    padding: 1.5rem;
 }
 
 /* Chart Legend Badges */

@@ -179,11 +179,29 @@ function setupWeightChart() {
         return `${labelPrefix}${weight.toFixed(1)} kg (${dateFormatted}, ${timeFormatted})${weekendTag}`;
     }
 
+    // Filter state: default to 20 days and all measurement times
+    let currentRange = '20d';
+    let currentFilter = 'all';
+
+    // Calculate cutoff date for range (daysAgo at 00:00:00)
+    function getCutoffDate(daysAgo) {
+        const now = new Date();
+        return new Date(now.getFullYear(), now.getMonth(), now.getDate() - daysAgo, 0, 0, 0, 0);
+    }
+
     // Process and filter data with weekend metadata
     let currentFilteredData = [];
-    function getFilteredData(filterType) {
+    function getFilteredData(filterType, rangeType) {
+        // 1. Filter by range
+        let rangeData = chartData;
+        if (rangeType === '20d') {
+            const cutoff = getCutoffDate(20);
+            rangeData = chartData.filter(d => parseDate(d.date) >= cutoff);
+        }
+
+        // 2. Filter by mode (all, am, pm, average)
         if (filterType === 'all') {
-            return chartData.map(d => {
+            return rangeData.map(d => {
                 const dateObj = parseDate(d.date);
                 return {
                     weight: d.weight,
@@ -195,7 +213,7 @@ function setupWeightChart() {
                 };
             });
         } else if (filterType === 'am') {
-            return chartData
+            return rangeData
                 .filter(d => {
                     const hour = parseDate(d.date).getHours();
                     return hour < 12;
@@ -212,7 +230,7 @@ function setupWeightChart() {
                     };
                 });
         } else if (filterType === 'pm') {
-            return chartData
+            return rangeData
                 .filter(d => {
                     const hour = parseDate(d.date).getHours();
                     return hour >= 12;
@@ -230,7 +248,7 @@ function setupWeightChart() {
                 });
         } else if (filterType === 'average') {
             const groups = {};
-            chartData.forEach(d => {
+            rangeData.forEach(d => {
                 const dateKey = d.date.split(' ')[0]; // 'YYYY-MM-DD'
                 if (!groups[dateKey]) {
                     groups[dateKey] = [];
@@ -260,17 +278,41 @@ function setupWeightChart() {
         return [];
     }
 
-    // Default to 'all' filter initially
-    currentFilteredData = getFilteredData('all');
+    // Fallback: If user has records but none in the last 20 days,
+    // activate 'all' so they don't see an empty chart on first load
+    const hasLogsInLast20Days = chartData.some(d => parseDate(d.date) >= getCutoffDate(20));
+    if (!hasLogsInLast20Days && chartData.length > 0) {
+        currentRange = 'all';
+        const range20Btn = document.getElementById('range-20d');
+        const rangeAllBtn = document.getElementById('range-all');
+        if (range20Btn && rangeAllBtn) {
+            range20Btn.classList.remove('active');
+            rangeAllBtn.classList.add('active');
+        }
+    }
+
+    // Default filtered data
+    currentFilteredData = getFilteredData(currentFilter, currentRange);
+
+    // Helper to update count badge
+    function updateCountBadge() {
+        const countBadge = document.getElementById('chart-count-badge');
+        if (countBadge) {
+            const count = currentFilteredData.length;
+            countBadge.textContent = `${count} ${count === 1 ? 'registro' : 'registros'}`;
+        }
+    }
+    updateCountBadge();
 
     // Helper to apply dataset styling (weekend amber vs weekday purple)
     function applyDatasetStyles(dataset, dataList) {
         dataset.data = dataList.map(d => d.weight);
         dataset.pointBackgroundColor = dataList.map(d => d.isWeekend ? '#f59e0b' : '#a855f7');
         dataset.pointBorderColor = dataList.map(d => '#ffffff');
-        dataset.pointBorderWidth = dataList.map(d => d.isWeekend ? 2.5 : 2);
-        dataset.pointRadius = dataList.map(d => d.isWeekend ? 6 : 4);
-        dataset.pointHoverRadius = dataList.map(d => d.isWeekend ? 8.5 : 6);
+        const isDense = dataList.length > 35;
+        dataset.pointBorderWidth = dataList.map(d => d.isWeekend ? (isDense ? 2 : 2.5) : (isDense ? 1.5 : 2));
+        dataset.pointRadius = dataList.map(d => d.isWeekend ? (isDense ? 4.5 : 6) : (isDense ? 3 : 4));
+        dataset.pointHoverRadius = dataList.map(d => d.isWeekend ? (isDense ? 7 : 8.5) : (isDense ? 5 : 6));
         dataset.pointHoverBackgroundColor = dataList.map(d => d.isWeekend ? '#d97706' : '#9333ea');
     }
 
@@ -401,6 +443,8 @@ function setupWeightChart() {
                         drawBorder: false
                     },
                     ticks: {
+                        autoSkip: true,
+                        maxTicksLimit: 14,
                         color: function(context) {
                             const item = currentFilteredData[context.index];
                             return (item && item.isWeekend) ? '#f59e0b' : ticksColor;
@@ -436,24 +480,69 @@ function setupWeightChart() {
     // Save chart instance globally to update theme dynamically
     window.weightChartInstance = chart;
 
-    // Wire up filter button clicks
-    const filterBtns = document.querySelectorAll('.chart-filter-btn');
-    filterBtns.forEach(btn => {
+    // Helper to refresh chart data, labels, styles, count badge and empty state
+    function updateChartUI() {
+        currentFilteredData = getFilteredData(currentFilter, currentRange);
+
+        // Update count badge
+        updateCountBadge();
+
+        // Manage contextual empty state overlay
+        const emptyOverlay = document.getElementById('chart-empty-filter');
+        const emptyMsg = document.getElementById('chart-empty-message');
+        if (emptyOverlay) {
+            if (currentFilteredData.length === 0) {
+                emptyOverlay.style.display = 'flex';
+                if (emptyMsg) {
+                    if (currentRange === '20d') {
+                        emptyMsg.textContent = 'No hay registros en los últimos 20 días con este filtro.';
+                    } else {
+                        emptyMsg.textContent = 'No hay registros con este filtro.';
+                    }
+                }
+            } else {
+                emptyOverlay.style.display = 'none';
+            }
+        }
+
+        // Update chart labels, dataset and re-render
+        chart.data.labels = currentFilteredData.map(d => d.label);
+        applyDatasetStyles(chart.data.datasets[0], currentFilteredData);
+        chart.update();
+    }
+
+    // Wire up range button clicks (20 days vs All)
+    const rangeBtns = document.querySelectorAll('.chart-range-btn');
+    rangeBtns.forEach(btn => {
         btn.addEventListener('click', () => {
-            // Update active class
-            filterBtns.forEach(b => b.classList.remove('active'));
+            rangeBtns.forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
-
-            // Get filtered data
-            const filterType = btn.getAttribute('data-filter');
-            currentFilteredData = getFilteredData(filterType);
-
-            // Update chart labels and point styles
-            chart.data.labels = currentFilteredData.map(d => d.label);
-            applyDatasetStyles(chart.data.datasets[0], currentFilteredData);
-            chart.update();
+            currentRange = btn.getAttribute('data-range');
+            updateChartUI();
         });
     });
+
+    // Wire up mode button clicks (All, AM, PM, Average)
+    const typeBtns = document.querySelectorAll('.chart-type-btn');
+    typeBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            typeBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentFilter = btn.getAttribute('data-filter');
+            updateChartUI();
+        });
+    });
+
+    // Wire up reset range button from contextual empty overlay
+    const resetRangeBtn = document.getElementById('btn-chart-reset-range');
+    if (resetRangeBtn) {
+        resetRangeBtn.addEventListener('click', () => {
+            const rangeAllBtn = document.getElementById('range-all');
+            if (rangeAllBtn) {
+                rangeAllBtn.click();
+            }
+        });
+    }
 }
 
 /**
